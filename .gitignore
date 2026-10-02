@@ -1,0 +1,8 @@
+node_modules/
+.pnpm-store/
+dist/
+index.js
+index.css
+i18n/
+package.zip
+pnpm-debug.log

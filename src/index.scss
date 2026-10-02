@@ -1,0 +1,145 @@
+.sy-motion-photo {
+  &__overlay {
+    position: absolute;
+    z-index: 5;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: rgba(0, 0, 0, .76);
+    touch-action: manipulation;
+    pointer-events: none;
+
+    &[hidden] {
+      display: none;
+    }
+
+    &--photo {
+      background: transparent;
+
+      .sy-motion-photo__video {
+        display: none;
+      }
+    }
+  }
+
+  &__video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+    pointer-events: none;
+  }
+
+  &__panel {
+    position: absolute;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  &__status {
+    margin: 0;
+    padding: 6px 12px;
+    border-radius: 8px;
+    color: #fff;
+    background: rgba(0, 0, 0, .72);
+    font-size: 14px;
+    text-align: center;
+    text-shadow: 0 1px 3px #000;
+  }
+
+  &__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    max-width: 100%;
+    pointer-events: auto;
+  }
+
+  &__button {
+    min-height: 42px;
+    padding: 8px 14px;
+    border: 1px solid rgba(255, 255, 255, .34);
+    border-radius: 9px;
+    color: #fff;
+    background: rgba(20, 20, 20, .84);
+    font: inherit;
+    line-height: 1.35;
+    cursor: pointer;
+
+    &:active {
+      background: rgba(70, 70, 70, .96);
+    }
+
+    &:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+  }
+
+  &__toolbar-item {
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  &__toolbar-button {
+    display: inline-grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border: 0;
+    border-radius: 7px;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    font-size: 18px;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(127, 127, 127, .24);
+    }
+  }
+
+  &__asset-link {
+    color: #fff;
+    text-underline-offset: 3px;
+    pointer-events: auto;
+  }
+}
+
+.viewer-container.sy-motion-photo--playing .viewer-toolbar .viewer-zoom-in,
+.viewer-container.sy-motion-photo--playing .viewer-toolbar .viewer-zoom-out,
+.viewer-container.sy-motion-photo--playing .viewer-toolbar .viewer-one-to-one,
+.viewer-container.sy-motion-photo--playing .viewer-toolbar .viewer-reset,
+.viewer-container.sy-motion-photo--playing .viewer-toolbar .viewer-rotate-left,
+.viewer-container.sy-motion-photo--playing .viewer-toolbar .viewer-rotate-right,
+.viewer-container.sy-motion-photo--playing .viewer-toolbar .viewer-flip-horizontal,
+.viewer-container.sy-motion-photo--playing .viewer-toolbar .viewer-flip-vertical {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  .sy-motion-photo__panel {
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .sy-motion-photo__buttons {
+    gap: 6px;
+  }
+
+  .sy-motion-photo__button {
+    min-height: 44px;
+    padding: 9px 11px;
+  }
+}

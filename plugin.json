@@ -1,0 +1,39 @@
+{
+  "name": "siyuan-motion-photo",
+  "author": "Open-source contributors",
+  "version": "0.1.0",
+  "minAppVersion": "3.8.5",
+  "backends": [
+    "windows",
+    "linux",
+    "darwin",
+    "android"
+  ],
+  "frontends": [
+    "desktop",
+    "mobile"
+  ],
+  "disabledInPublish": false,
+  "displayName": {
+    "default": "思源动态照片",
+    "zh-CN": "思源动态照片",
+    "en-US": "SiYuan Motion Photo"
+  },
+  "description": {
+    "default": "在图片灯箱中播放 Android Motion Photo 动态照片。",
+    "zh-CN": "在图片灯箱中播放小米、Pixel 等 Android 动态照片。",
+    "en-US": "Play Android Motion Photos in SiYuan's image viewer."
+  },
+  "readme": {
+    "default": "README.md",
+    "zh-CN": "README.zh-CN.md",
+    "en-US": "README.md"
+  },
+  "keywords": [
+    "动态照片",
+    "Motion Photo",
+    "小米",
+    "Pixel",
+    "安卓"
+  ]
+}
