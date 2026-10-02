@@ -3,6 +3,7 @@ node_modules/
 dist/
 index.js
 index.css
-i18n/
+/i18n/
+/.verification/
 package.zip
 pnpm-debug.log

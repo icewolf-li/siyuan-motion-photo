@@ -14,7 +14,11 @@ export interface MotionPhotoTranslations {
     unsupportedCodec: string;
     retryPlayback: string;
     exportVideo: string;
+    openVideoExternal: string;
+    videoOpenedExternal: string;
     exportingVideo: string;
     exportComplete: string;
+    exportCanceled: string;
+    exportUnavailable: string;
     exportFailed: string;
 }

@@ -1,7 +1,7 @@
 {
   "name": "siyuan-motion-photo",
   "author": "Open-source contributors",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "minAppVersion": "3.8.5",
   "backends": [
     "windows",

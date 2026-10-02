@@ -8,7 +8,12 @@ globalThis.__motionPhotoMessages = [];
 registerHooks({
     resolve(specifier, context, nextResolve) {
         if (specifier === "siyuan") {
-            const source = "export const showMessage = (message) => globalThis.__motionPhotoMessages.push(message);";
+            const source = `
+                export const showMessage = (message) => globalThis.__motionPhotoMessages.push(message);
+                export const getFrontend = () => globalThis.__motionPhotoPlatform?.frontend ?? 'desktop';
+                export const getBackend = () => globalThis.__motionPhotoPlatform?.backend ?? 'windows';
+                export const saveExportFile = (uri) => globalThis.__motionPhotoNativeExport(uri);
+            `;
             return {url: `data:text/javascript,${encodeURIComponent(source)}`, shortCircuit: true};
         }
         return nextResolve(specifier, context);
@@ -17,26 +22,7 @@ registerHooks({
 
 const {MotionPhotoViewerBridge} = await import("../src/motion-photo/viewer.ts");
 const fixture = new Uint8Array(await readFile("motion (2).jpg"));
-const strings = {
-    loadingVideo: "正在载入动态照片…",
-    controlsLabel: "动态照片控制",
-    videoLabel: "动态照片视频",
-    playVideo: "播放动态照片",
-    pauseVideo: "暂停",
-    turnOnSound: "开启声音",
-    muteSound: "静音",
-    showPhoto: "查看静态照片",
-    photoVisible: "已显示静态照片",
-    videoPlaying: "正在播放",
-    videoPaused: "已暂停",
-    autoplayBlocked: "自动播放受限，点击播放继续",
-    unsupportedCodec: "当前客户端不支持此视频编码，已保留静态照片。",
-    retryPlayback: "重试播放",
-    exportVideo: "导出 MP4",
-    exportingVideo: "正在保存 MP4…",
-    exportComplete: "视频已保存到思源 assets，打开",
-    exportFailed: "导出视频失败",
-};
+const strings = JSON.parse(await readFile("src/i18n/zh-CN.json", "utf8"));
 
 const rangedResponse = (start, end) => new Response(fixture.subarray(start, end + 1), {
     status: 206,
@@ -46,7 +32,8 @@ const rangedResponse = (start, end) => new Response(fixture.subarray(start, end 
     },
 });
 
-const createHarness = ({codec = "probably", rejectFirstPlay = false, fetchMock} = {}) => {
+const createHarness = ({codec = "probably", rejectFirstPlay = false, fetchMock, nativeExport,
+    android = false, openExternal} = {}) => {
     const {document, window} = parseHTML("<html><body></body></html>");
     Object.defineProperty(window, "location", {
         configurable: true,
@@ -121,10 +108,18 @@ const createHarness = ({codec = "probably", rejectFirstPlay = false, fetchMock} 
         MutationObserver: globalThis.MutationObserver,
         createObjectURL: URL.createObjectURL,
         revokeObjectURL: URL.revokeObjectURL,
+        platform: globalThis.__motionPhotoPlatform,
+        nativeExport: globalThis.__motionPhotoNativeExport,
     };
     const revoked = [];
     globalThis.document = document;
     globalThis.window = window;
+    globalThis.__motionPhotoPlatform = android ? {frontend: "mobile", backend: "android"} :
+        {frontend: "desktop", backend: "windows"};
+    globalThis.__motionPhotoNativeExport = nativeExport ?? (async () => ({status: "success"}));
+    if (android) {
+        window.JSAndroid = {openExternal: openExternal ?? (() => {})};
+    }
     globalThis.MutationObserver = class {
         observe() {}
         disconnect() {}
@@ -155,6 +150,8 @@ const createHarness = ({codec = "probably", rejectFirstPlay = false, fetchMock} 
         globalThis.window = oldGlobals.window;
         globalThis.fetch = oldGlobals.fetch;
         globalThis.MutationObserver = oldGlobals.MutationObserver;
+        globalThis.__motionPhotoPlatform = oldGlobals.platform;
+        globalThis.__motionPhotoNativeExport = oldGlobals.nativeExport;
         Object.defineProperty(URL, "createObjectURL", {configurable: true, value: oldGlobals.createObjectURL});
         Object.defineProperty(URL, "revokeObjectURL", {configurable: true, value: oldGlobals.revokeObjectURL});
     };
@@ -273,39 +270,139 @@ test("switches cleanly between motion and ordinary photos", async () => {
     }
 });
 
-test("exports MP4 only after the explicit control is clicked and links the uploaded asset", async () => {
-    let uploadCalls = 0;
+test("exports the sample through the desktop native save helper only after an explicit click", async () => {
+    let temporaryFile;
+    let temporaryPath;
+    let nativeCalls = 0;
+    const removed = [];
     const fetchMock = async (url, options = {}) => {
-        if (String(url) === "blob:motion-photo-test") {
-            return new Response(fixture.subarray(2855371), {status: 200, headers: {"Content-Type": "video/mp4"}});
+        if (String(url) === "/api/file/putFile") {
+            temporaryPath = options.body.get("path");
+            temporaryFile = options.body.get("file");
+            assert.equal(options.body.get("assetsDirPath"), null);
+            assert.match(temporaryPath, /^\/temp\/export\/siyuan-motion-photo\/[0-9a-f]{32}\/motion \(2\)\.mp4$/);
+            assert.equal(temporaryFile.name, "motion (2).mp4");
+            assert.equal(temporaryFile.type, "video/mp4");
+            assert.equal(temporaryFile.size, 506134);
+            assert.deepEqual(new Uint8Array(await temporaryFile.arrayBuffer()), fixture.subarray(2855371));
+            return new Response(JSON.stringify({code: 0}), {status: 200});
         }
-        if (String(url) === "/api/asset/upload") {
-            uploadCalls += 1;
-            assert.equal(options.method, "POST");
-            assert.equal(options.body.get("assetsDirPath"), "/assets/");
-            assert.equal(options.body.get("file[]").name, "motion (2).mp4");
-            return new Response(JSON.stringify({
-                code: 0,
-                data: {succFiles: [{name: "motion (2)-id.mp4", path: "assets/motion (2)-id.mp4"}]},
-            }), {status: 200, headers: {"Content-Type": "application/json"}});
+        if (String(url) === "/api/file/removeFile") {
+            removed.push(JSON.parse(options.body).path);
+            return new Response(JSON.stringify({code: 0}), {status: 200});
+        }
+        assert.notEqual(String(url), "/api/asset/upload");
+        const match = /bytes=(\d+)-(\d+)/.exec(options.headers.Range);
+        return rangedResponse(Number(match[1]), Number(match[2]));
+    };
+    const harness = createHarness({fetchMock, nativeExport: async (uri) => {
+        nativeCalls += 1;
+        assert.equal(decodeURIComponent(uri), temporaryPath.replace(/^\/temp/, ""));
+        assert.ok(temporaryFile);
+        return {status: "success"};
+    }});
+    try {
+        harness.bridge.start();
+        await waitFor(() => harness.video && harness.document.querySelector(".sy-motion-photo__overlay"));
+        assert.equal(temporaryFile, undefined);
+        assert.equal(nativeCalls, 0);
+        harness.document.querySelector('[data-sy-motion-action="export"]').click();
+        await waitFor(() => harness.document.querySelector(".sy-motion-photo__status").textContent === strings.exportComplete);
+        assert.equal(nativeCalls, 1);
+        assert.deepEqual(removed, [temporaryPath]);
+        assert.equal(harness.video.paused, true);
+        assert.equal(harness.document.querySelector('[data-sy-motion-action="export"]').disabled, false);
+        assert.equal(harness.document.querySelector(".sy-motion-photo__asset-link"), null);
+    } finally {
+        harness.cleanup();
+    }
+});
+
+test("Android control hands a temporary video to other apps and keeps it available after the lightbox closes", async () => {
+    let temporaryPath;
+    const opened = [];
+    const removed = [];
+    const fetchMock = async (url, options = {}) => {
+        if (url === "/api/file/readDir") {
+            return new Response(JSON.stringify({code: 0, data: []}), {status: 200});
+        }
+        if (url === "/api/file/putFile") {
+            temporaryPath = options.body.get("path");
+            assert.match(temporaryPath, /^\/data\/assets\/siyuan-motion-photo-temp\/motion-photo-\d{13}-[0-9a-f]{32}-motion \(2\)\.mp4$/);
+            assert.equal(options.body.get("file").size, 506134);
+            return new Response(JSON.stringify({code: 0}), {status: 200});
+        }
+        if (url === "/api/file/removeFile") {
+            removed.push(JSON.parse(options.body).path);
+            return new Response(JSON.stringify({code: 0}), {status: 200});
         }
         const match = /bytes=(\d+)-(\d+)/.exec(options.headers.Range);
         return rangedResponse(Number(match[1]), Number(match[2]));
     };
-    const harness = createHarness({fetchMock});
+    const harness = createHarness({android: true, fetchMock, openExternal: uri => opened.push(uri),
+        nativeExport: () => assert.fail("Android should use the other-app bridge")});
     try {
         harness.bridge.start();
         await waitFor(() => harness.video && harness.document.querySelector(".sy-motion-photo__overlay"));
-        assert.equal(uploadCalls, 0);
-        harness.document.querySelector('[data-sy-motion-action="export"]').click();
-        await waitFor(() => harness.document.querySelector(".sy-motion-photo__asset-link"));
-        assert.equal(uploadCalls, 1);
-        const anchor = harness.document.querySelector(".sy-motion-photo__asset-link");
-        const assetURL = new URL(anchor.getAttribute("href"), "http://siyuan.test/");
-        assert.equal(assetURL.pathname, "/assets/motion%20(2)-id.mp4");
-        assert.equal(assetURL.searchParams.get("download"), "true");
+        const button = harness.document.querySelector('[data-sy-motion-action="export"]');
+        assert.equal(button.textContent, strings.openVideoExternal);
+        assert.equal(temporaryPath, undefined);
+        button.click();
+        await waitFor(() => harness.document.querySelector(".sy-motion-photo__status").textContent === strings.videoOpenedExternal);
+        assert.equal(opened.length, 1);
+        assert.equal(decodeURIComponent(opened[0]), temporaryPath.replace(/^\/data\//, ""));
+        assert.equal(harness.video.paused, true);
+        harness.eventTarget.dispatchEvent(new harness.window.Event("hide"));
+        assert.deepEqual(removed, []);
+        assert.deepEqual(harness.revoked, ["blob:motion-photo-test"]);
     } finally {
         harness.cleanup();
+    }
+    assert.deepEqual(removed, []);
+});
+
+test("closing or disabling during export staging aborts the write and never launches a native action", async (t) => {
+    for (const action of ["hide", "stop"]) {
+        await t.test(action, async () => {
+            let writeSignal;
+            let temporaryPath;
+            const removed = [];
+            const fetchMock = async (url, options = {}) => {
+                if (url === "/api/file/putFile") {
+                    writeSignal = options.signal;
+                    temporaryPath = options.body.get("path");
+                    return new Promise((_resolve, reject) => {
+                        options.signal.addEventListener("abort", () =>
+                            reject(new DOMException("Aborted", "AbortError")), {once: true});
+                    });
+                }
+                if (url === "/api/file/removeFile") {
+                    removed.push(JSON.parse(options.body).path);
+                    return new Response(JSON.stringify({code: 0}), {status: 200});
+                }
+                const match = /bytes=(\d+)-(\d+)/.exec(options.headers.Range);
+                return rangedResponse(Number(match[1]), Number(match[2]));
+            };
+            const harness = createHarness({fetchMock,
+                nativeExport: () => assert.fail("A canceled lightbox must not launch a native dialog")});
+            try {
+                harness.bridge.start();
+                await waitFor(() => harness.video && harness.document.querySelector(".sy-motion-photo__overlay"));
+                harness.document.querySelector('[data-sy-motion-action="export"]').click();
+                await waitFor(() => writeSignal);
+                if (action === "stop") {
+                    harness.bridge.stop();
+                } else {
+                    harness.eventTarget.dispatchEvent(new harness.window.Event("hide"));
+                }
+                assert.equal(writeSignal.aborted, true);
+                await waitFor(() => removed.length === 1);
+                assert.deepEqual(removed, [temporaryPath]);
+                assert.equal(harness.document.querySelector(".sy-motion-photo__overlay"), null);
+            } finally {
+                harness.cleanup();
+            }
+        });
     }
 });
 

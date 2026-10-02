@@ -1,6 +1,7 @@
 import {showMessage} from "siyuan";
 import type {MotionPhotoTranslations} from "./viewerTypes.ts";
 import {fetchMotionPhotoVideo} from "./reader.ts";
+import {MotionPhotoExporter} from "./exporter.ts";
 
 interface NativeViewer {
     element: HTMLElement;
@@ -42,10 +43,11 @@ export class MotionPhotoViewerBridge {
     private toolbarItem: HTMLLIElement | undefined;
     private toolbarButton: HTMLButtonElement | undefined;
     private statusElement: HTMLParagraphElement | undefined;
-    private downloadAnchor: HTMLAnchorElement | undefined;
     private sourceImage: HTMLImageElement | undefined;
     private activeSource: string | undefined;
     private blobUrl: string | undefined;
+    private videoBlob: Blob | undefined;
+    private readonly exporter = new MotionPhotoExporter();
     private session = 0;
     private readonly viewedUrls = new Map<string, "static" | "motion">();
     private readonly strings: MotionPhotoTranslations;
@@ -58,6 +60,7 @@ export class MotionPhotoViewerBridge {
         if (!document.body || typeof MutationObserver === "undefined") {
             return;
         }
+        this.exporter.start();
         this.observer = new MutationObserver(this.bindCurrentViewer);
         this.observer.observe(document.body, {childList: true});
         this.bindCurrentViewer();
@@ -67,6 +70,7 @@ export class MotionPhotoViewerBridge {
         this.observer?.disconnect();
         this.observer = undefined;
         this.unbindViewer();
+        this.exporter.stop();
         this.toolbarItem?.remove();
         this.toolbarItem = undefined;
         this.toolbarButton = undefined;
@@ -151,11 +155,11 @@ export class MotionPhotoViewerBridge {
             URL.revokeObjectURL(this.blobUrl);
         }
         this.blobUrl = undefined;
+        this.videoBlob = undefined;
         this.overlay?.remove();
         this.overlay = undefined;
         this.video = undefined;
         this.statusElement = undefined;
-        this.downloadAnchor = undefined;
         this.sourceImage = undefined;
         this.activeSource = undefined;
         this.setViewerMotionMode(false);
@@ -196,6 +200,7 @@ export class MotionPhotoViewerBridge {
             }
 
             this.viewedUrls.set(source, "motion");
+            this.videoBlob = blob;
             this.blobUrl = URL.createObjectURL(blob);
             if (!this.createVideoControls()) {
                 this.resetCurrentImage();
@@ -251,7 +256,12 @@ export class MotionPhotoViewerBridge {
         const playButton = this.makeButton(this.strings.playVideo, this.strings.playVideo, this.togglePlayback);
         const soundButton = this.makeButton(this.strings.turnOnSound, this.strings.turnOnSound, this.toggleAudio);
         const photoButton = this.makeButton(this.strings.showPhoto, this.strings.showPhoto, this.returnToPhoto);
-        const exportButton = this.makeButton(this.strings.exportVideo, this.strings.exportVideo, this.exportVideo);
+        const exportLabel = this.exportLabel;
+        const exportButton = this.makeButton(exportLabel, exportLabel, this.exportVideo);
+        if (!this.exporter.available) {
+            exportButton.disabled = true;
+            exportButton.title = this.strings.exportUnavailable;
+        }
         playButton.dataset.syMotionAction = "play";
         soundButton.dataset.syMotionAction = "sound";
         photoButton.dataset.syMotionAction = "photo";
@@ -264,7 +274,6 @@ export class MotionPhotoViewerBridge {
         this.overlay = overlay;
         this.video = video;
         this.statusElement = status;
-        this.downloadAnchor = undefined;
         return true;
     }
 
@@ -464,68 +473,46 @@ export class MotionPhotoViewerBridge {
         }
     }
 
+    private get exportLabel() {
+        return this.exporter.isAndroid ? this.strings.openVideoExternal : this.strings.exportVideo;
+    }
+
     private readonly exportVideo = async (event: Event) => {
         event.preventDefault();
         event.stopPropagation();
-        const blobUrl = this.blobUrl;
+        const videoBlob = this.videoBlob;
         const controller = this.cancellation;
+        const currentSession = this.session;
         const source = this.sourceImage && cleanAssetSource(this.sourceImage.currentSrc || this.sourceImage.src);
         const button = this.overlay?.querySelector<HTMLButtonElement>('[data-sy-motion-action="export"]');
-        if (!blobUrl || !controller || !source || !button) {
+        if (!videoBlob || !controller || !source || !button || button.disabled) {
             return;
         }
 
+        this.video?.pause();
+        this.updatePlaybackButton(this.strings.playVideo);
         button.disabled = true;
         button.textContent = this.strings.exportingVideo;
+        this.setPlaybackStatus(this.strings.exportingVideo);
         try {
             const assetURL = new URL(source);
             const originalName = decodeURIComponent(assetURL.pathname.split("/").pop() ?? "motion-photo");
             const videoName = originalName.replace(/\.jpe?g$/i, ".mp4");
-            const videoResponse = await fetch(blobUrl, {signal: controller.signal});
-            if (!videoResponse.ok) {
-                throw new Error("The extracted video is no longer available.");
-            }
-
-            const form = new FormData();
-            form.append("assetsDirPath", "/assets/");
-            form.append("file[]", new File([await videoResponse.blob()], videoName, {type: "video/mp4"}));
-            const response = await fetch("/api/asset/upload", {
-                method: "POST",
-                body: form,
-                signal: controller.signal,
-                credentials: "same-origin",
-            });
-            const result = await response.json() as {
-                code?: number;
-                msg?: string;
-                data?: {succFiles?: Array<{name?: string; path?: string}>};
-            };
-            const path = result.data?.succFiles?.[0]?.path;
-            if (!response.ok || result.code !== 0 || !path) {
-                throw new Error(result.msg || `Export failed with HTTP ${response.status}.`);
-            }
-
-            const anchor = document.createElement("a");
-            anchor.className = "sy-motion-photo__asset-link";
-            anchor.href = `/${path.split("/").map(encodeURIComponent).join("/")}?download=true`;
-            anchor.textContent = `${this.strings.exportComplete}: ${result.data?.succFiles?.[0]?.name ?? videoName}`;
-            anchor.setAttribute("aria-label", this.strings.exportComplete);
-            if (controller.signal.aborted || source !== (this.sourceImage &&
-                cleanAssetSource(this.sourceImage.currentSrc || this.sourceImage.src))) {
+            const result = await this.exporter.exportVideo(videoBlob, videoName, controller.signal);
+            if (controller.signal.aborted || currentSession !== this.session) {
                 return;
             }
-            this.downloadAnchor?.remove();
-            this.downloadAnchor = anchor;
-            this.overlay?.querySelector(".sy-motion-photo__panel")?.append(anchor);
-            this.setPlaybackStatus(this.strings.exportComplete);
+            this.setPlaybackStatus(result === "opened" ? this.strings.videoOpenedExternal :
+                result === "canceled" ? this.strings.exportCanceled : this.strings.exportComplete);
         } catch (error) {
             if (!controller.signal.aborted) {
                 showMessage(`${this.strings.exportFailed}: ${error instanceof Error ? error.message : String(error)}`);
+                this.setPlaybackStatus(this.strings.exportFailed);
             }
         } finally {
             if (!controller.signal.aborted && button.isConnected) {
                 button.disabled = false;
-                button.textContent = this.strings.exportVideo;
+                button.textContent = this.exportLabel;
             }
         }
     };

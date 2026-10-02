@@ -1,6 +1,6 @@
 {
   "name": "siyuan-motion-photo",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "播放思源笔记中的 Android 动态照片。",
   "private": true,
   "type": "module",

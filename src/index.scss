@@ -8,6 +8,9 @@
     justify-content: center;
     overflow: hidden;
     background: rgba(0, 0, 0, .76);
+    // Viewer.js sets font-size and line-height to 0 on its container.
+    font-size: 14px;
+    line-height: 1.4;
     touch-action: manipulation;
     pointer-events: none;
 
@@ -103,6 +106,7 @@
     background: transparent;
     font: inherit;
     font-size: 18px;
+    line-height: 1;
     cursor: pointer;
 
     &:hover,
@@ -111,11 +115,6 @@
     }
   }
 
-  &__asset-link {
-    color: #fff;
-    text-underline-offset: 3px;
-    pointer-events: auto;
-  }
 }
 
 .viewer-container.sy-motion-photo--playing .viewer-toolbar .viewer-zoom-in,
