@@ -40,6 +40,10 @@ Webpack generates the installable archive at `package.zip`. Extract the archive'
 
 Automated tests cover parsing, the supplied Xiaomi sample, Range reading, playback fallbacks, lifecycle cleanup, native export handoff, cancellation, errors, and Android temporary-file expiration and recovery. Version 0.1.3 also tests all four settings combinations, persistence, failed and canceled saves, unloading during load or save, the actual toolbar DOM hierarchy, replay, pause position and keyboard restoration.
 
+## Publish
+
+Keep the versions in `package.json` and `plugin.json` in sync. Push a version tag such as `v0.1.3` to run the GitHub Actions release workflow. It builds `package.zip` and publishes it as a GitHub Release asset. For the first SiYuan marketplace listing, submit a one-line `icewolf-li/siyuan-motion-photo` addition to `plugins.txt` in `siyuan-note/bazaar`; later versions only need a new release with an increased version.
+
 An isolated local browser fixture has checked desktop and 360px layouts using SiYuan 3.8.5's Viewer.js, desktop/mobile styles and Dialog source. Plugin storage, Dialog helpers and native exports use isolated implementations in this fixture. These checks are separate from acceptance inside an installed SiYuan client: Windows, Android devices and other desktop systems still require that acceptance. See `VALIDATION.zh-CN.md` in the source directory for actual results and pending checks. The user photo is excluded from the installation package; sample tests require the supplied `motion (2).jpg` in the source root.
 
 Settings integration follows SiYuan [3.8.5's Plugin API](https://github.com/siyuan-note/siyuan/blob/v3.8.5/app/src/plugin/index.ts) and [native Dialog](https://github.com/siyuan-note/siyuan/blob/v3.8.5/app/src/dialog/index.ts).

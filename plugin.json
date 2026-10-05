@@ -1,6 +1,7 @@
 {
   "name": "siyuan-motion-photo",
-  "author": "Open-source contributors",
+  "author": "nodaoli",
+  "url": "https://github.com/icewolf-li/siyuan-motion-photo",
   "version": "0.1.3",
   "minAppVersion": "3.8.5",
   "backends": [
@@ -15,12 +16,12 @@
   ],
   "disabledInPublish": false,
   "displayName": {
-    "default": "思源动态照片",
+    "default": "SiYuan Motion Photo",
     "zh-CN": "思源动态照片",
     "en-US": "SiYuan Motion Photo"
   },
   "description": {
-    "default": "在图片灯箱中播放 Android Motion Photo 动态照片。",
+    "default": "Play Android Motion Photos in SiYuan's image viewer.",
     "zh-CN": "在图片灯箱中播放小米、Pixel 等 Android 动态照片。",
     "en-US": "Play Android Motion Photos in SiYuan's image viewer."
   },
