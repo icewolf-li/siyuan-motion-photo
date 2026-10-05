@@ -3,6 +3,7 @@
   "controlsLabel": "Motion photo controls",
   "videoLabel": "Motion photo video",
   "playVideo": "Play motion photo",
+  "replayVideo": "Replay motion photo",
   "pauseVideo": "Pause",
   "turnOnSound": "Turn on sound",
   "muteSound": "Mute",
@@ -20,5 +21,16 @@
   "exportComplete": "Video saved to the selected location",
   "exportCanceled": "Export canceled",
   "exportUnavailable": "Native file export is unavailable in this client",
-  "exportFailed": "Video export failed"
+  "exportFailed": "Video export failed",
+  "openSettings": "Motion photo settings",
+  "settingsTitle": "Motion photo settings",
+  "autoPlaySetting": "Autoplay",
+  "autoPlayDescription": "Play once when opening or switching to a motion photo.",
+  "defaultMutedSetting": "Mute by default",
+  "defaultMutedDescription": "Start each new motion photo without sound. You can change this during playback.",
+  "settingsNextPhoto": "Saved settings apply to the next photo you open or switch to. Opening settings pauses the current video; resume it manually after closing.",
+  "saveSettings": "Save",
+  "cancelSettings": "Cancel",
+  "savingSettings": "Saving…",
+  "settingsSaveFailed": "Could not save settings. Please try again"
 }

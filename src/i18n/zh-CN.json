@@ -3,6 +3,7 @@
   "controlsLabel": "动态照片控制",
   "videoLabel": "动态照片视频",
   "playVideo": "播放动态照片",
+  "replayVideo": "重播动态照片",
   "pauseVideo": "暂停",
   "turnOnSound": "开启声音",
   "muteSound": "静音",
@@ -20,5 +21,16 @@
   "exportComplete": "视频已保存到所选位置",
   "exportCanceled": "已取消导出",
   "exportUnavailable": "当前客户端不支持原生文件导出",
-  "exportFailed": "导出视频失败"
+  "exportFailed": "导出视频失败",
+  "openSettings": "动态照片设置",
+  "settingsTitle": "动态照片设置",
+  "autoPlaySetting": "自动播放",
+  "autoPlayDescription": "打开灯箱或切换到动态照片时，自动播放一次。",
+  "defaultMutedSetting": "默认静音",
+  "defaultMutedDescription": "新打开的动态照片默认关闭声音，可在播放时切换。",
+  "settingsNextPhoto": "保存后，对下次打开或切换的照片生效。打开设置会暂停当前视频，关闭后可手动继续播放。",
+  "saveSettings": "保存",
+  "cancelSettings": "取消",
+  "savingSettings": "正在保存…",
+  "settingsSaveFailed": "设置保存失败，请重试"
 }

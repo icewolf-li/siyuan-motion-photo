@@ -3,6 +3,7 @@ export interface MotionPhotoTranslations {
     controlsLabel: string;
     videoLabel: string;
     playVideo: string;
+    replayVideo: string;
     pauseVideo: string;
     turnOnSound: string;
     muteSound: string;
@@ -21,4 +22,15 @@ export interface MotionPhotoTranslations {
     exportCanceled: string;
     exportUnavailable: string;
     exportFailed: string;
+    openSettings: string;
+    settingsTitle: string;
+    autoPlaySetting: string;
+    autoPlayDescription: string;
+    defaultMutedSetting: string;
+    defaultMutedDescription: string;
+    settingsNextPhoto: string;
+    saveSettings: string;
+    cancelSettings: string;
+    savingSettings: string;
+    settingsSaveFailed: string;
 }
