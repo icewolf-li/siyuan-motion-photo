@@ -40,6 +40,10 @@ Webpack 会在项目根目录生成 `package.zip`，其中包含安装所需的�
 
 自动化测试包含解析器、MP4 结构校验、实际的小米样本、Range 请求、服务器不支持 Range、XMP 缺失时的容器扫描，以及中断和资源边界场景。0.1.3 增加设置的四种组合、持久化、保存失败、取消、加载或保存期间停用，以及真实工具栏层级下的重播、暂停位置和键盘恢复测试。导出测试继续覆盖桌面系统保存调用、取消和失败、Android 临时附件打开、延迟清理和重启后清理。
 
+## 发布到集市
+
+保持 `package.json` 与 `plugin.json` 中的版本号一致。推送版本 tag（例如 `v0.1.3`）后，GitHub Actions 会自动构建 `package.zip` 并创建 GitHub Release。首次上架时，向 `siyuan-note/bazaar` 的 `plugins.txt` 提交一行 `icewolf-li/siyuan-motion-photo`；后续版本只需提高版本号并发布新的 Release。
+
 本地浏览器已使用思源 3.8.5 自带 Viewer.js、桌面／移动样式及 Dialog 源码验证桌面和 360 像素窄屏交互。测试页面的插件存储、Dialog 辅助依赖和原生导出接口使用隔离实现；这些检查不代表安装到思源后的真机验收。Windows 思源内的实际操作、Android 真机及其他桌面系统仍需在对应设备上确认。源码目录的 `VALIDATION.zh-CN.md` 记录完成的检查和待验收项。样本照片不包含在安装包中；运行样本测试时，需在源码根目录保留本次使用的 `motion (2).jpg`。
 
 设置接入依据思源 [3.8.5 的 Plugin 接口](https://github.com/siyuan-note/siyuan/blob/v3.8.5/app/src/plugin/index.ts)和 [Dialog 实现](https://github.com/siyuan-note/siyuan/blob/v3.8.5/app/src/dialog/index.ts)。

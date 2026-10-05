@@ -2,6 +2,11 @@
   "name": "siyuan-motion-photo",
   "version": "0.1.3",
   "description": "播放思源笔记中的 Android 动态照片。",
+  "author": "nodaoli",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/icewolf-li/siyuan-motion-photo.git"
+  },
   "private": true,
   "type": "module",
   "scripts": {
